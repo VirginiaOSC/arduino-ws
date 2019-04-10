@@ -40,9 +40,9 @@ void setup()
   mySensor.setFilter(1);
   
   /* 1 through 5, oversampling *1, *2, *4, *8, *16 respectively*/
-  mySensor.setTempOverSample(1);
-  mySensor.setPressureOverSample (1);
-  mySensor.setHumidityOverSample(1);
+  mySensor.setTempOverSample(4);
+  mySensor.setPressureOverSample (4);
+  mySensor.setHumidityOverSample(4);
   
 }
 
