@@ -1,21 +1,17 @@
-#include <Wire.h>
-#include "SparkFunBME280.h"
+/* Include required headers and/or libraries */
+#include <FS.h>
 
-#define SLAVE_ADDRESS 0x76
+#define TESTFILE "/test_file.txt"
 
-/* Instantiate a BME280 object called BME280_obj */
-//BME280 BME280_obj;
-BME280 mySensor;  //Objetos C++
-
-struct sensors   //Descripción de la estructura
-{
-  uint8_t temp;
-  uint8_t alt;
-  uint8_t hum;
-  uint8_t pres;
-};
-
-
+/*Declaración de la estructura*/
+struct sensor 
+      {
+        uint8_t temp;
+        uint8_t altura;
+      };
+/*
+ * Single-pass function to configure the app
+ */
 void setup()
 {
   /* Start serial for output */
@@ -23,7 +19,7 @@ void setup()
 
   /* Initialize the file system */
   Serial.printf("Initializing SPIFFS\n");
-  if (SPIFFS.begin() == false)   //Para guardar datos SPIFFS
+  if (SPIFFS.begin() == false)
   {
     Serial.printf("SPIFFS cannot be initialized\n");
 
@@ -32,29 +28,85 @@ void setup()
   }
 }
 
-void loop()   //Necesitamos 2 funciones una para recoger datos y otra para guardar.
+/*
+ * Recurrent task, called forever
+ */
+void loop()         //Queremos dos funciones una para recoger los datos y otra para guardarlos
 {
-    /* Welcome message! Useful as a control point */
-  Serial.printf("\nAhoy! ESP8266 here!\n---\n");
+  /* Welcome message! Useful as a control point */
+  Serial.printf("Ahoy! ESP8266 here!\n---\n");
 
-  struct nombre dato1;                        //Reserva de memoria 
-  Serial.printf("Humidity:\t ");
-  Serial.printf(mySensor.readFloatHumidity());
+  File test_file;
+  #define MY_STR_LEN 1024
+  uint8_t my_string[MY_STR_LEN];
+  uint16_t my_line = 0;
+  
+  /*Creación de variables de tipo struct sensor*/
+  struct sensor dato;
+  /*Asignar el valor de la temperatura a la variable*/
+  
+  dato.temp = 35;
+  /* The file already exist? */
+  if (SPIFFS.exists(TESTFILE))
+  {
+    Serial.printf("File '" TESTFILE "'' IS found'\n");
+  }
+  else
+  {
+    Serial.printf("File '" TESTFILE "'' NOT found'\n");
+  }
 
-  Serial.printf(" \nPressure:\t ");
-  Serial.printf(mySensor.readFloatPressure();
+  /* Mode 'a+' create if not exists:
+   *  - Read from the beginning of the file
+   *  - Append new data at the end
+   *  * Useful for buffers ;)
+   */
+  test_file = SPIFFS.open(TESTFILE, "a+");
+  if (!test_file)
+  {
+    /* Oh man, this is serious */
+    Serial.printf("Cannot open '" TESTFILE "'' for appending'\n");
+  }
+  else
+  {
+    Serial.printf("Opened '" TESTFILE "'\n");
 
-  Serial.printf("\nAltitude m:\t ");
-  Serial.printf(mySensor.readFloatAltitudeMeters())  //Número de decimales 1
-  Serial.print(" \nAltitude feet:\t ");
-  Serial.printf(mySensor.readFloatAltitudeFeet());
+    /* Opened, now put some (at the end of the file) */
+    Serial.printf("Filling file '" TESTFILE "' with some data\n");
+    test_file.printf("This is the first line for temperature %d\n",dato.temp);
+    test_file.printf("This is the second line\n");
+    test_file.printf("This is the third line\n");
+    test_file.close();
 
-  Serial.printf(" \nTemperature degrees C:\t ");
-  Serial.printf(mySensor.readTempC();
-  Serial.printf(" \nTemperature degrees F:\t ");
-  Serial.printf(mySensor.readTempF());
+    /* Mode 'r' create if not exists:
+     *  - Read from the beginning of the file
+     *  - Fails if file not exists
+     *  * Useful for safe readings without data modification
+     */
+    test_file = SPIFFS.open(TESTFILE, "r");
+    Serial.printf("Reopened '" TESTFILE "' for reading\n");
+    Serial.printf("Contents of file '" TESTFILE "'\n");
+    my_line = 0;
+    while (test_file.position() < test_file.size())
+    {
+      test_file.readBytesUntil('\n', my_string, MY_STR_LEN);
+      Serial.printf("Line %03d: %s\n", my_line++, my_string);
+    }
 
-  Serial.println();
+    /* Done, free/close the file */
+    test_file.close();
+    Serial.printf("Closed '" TESTFILE "'\n");
 
-  delay(500);
+    /* Remove the file */
+    SPIFFS.remove(TESTFILE);
+    Serial.printf("Removed '" TESTFILE "'\n");
+  }
+
+  /* Process is locked until reset is performed */
+  Serial.printf("Locking now\n");
+  while (true)
+  {
+    /* Ensure other tasks are working (avoid WDT reset) */
+    yield();
+  }
 }
